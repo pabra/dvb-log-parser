@@ -12,6 +12,7 @@ const logLineRegExp = /^(([0-9.]+)|([0-9a-f:]+)) \[([^\]]+)\] "([^"]*)" (.*)$/;
 const dateRegExp = /^(\d{2})\/(\w{3})\/(\d{4}):(\d{2}):(\d{2}):(\d{2}) ([+-])(\d{2})(\d{2})$/;
 const dataFile = '/data/data.json';
 const dataFileGz = `${dataFile}.gz`;
+const tooOld = new Date() - 31 * 24 * 60 * 60 * 1000;
 
 if (!fileNameStartsWith) throw new Error('missing LOG_FILE_NAME_STARTS_WITH in env');
 
@@ -42,14 +43,13 @@ function getOldLogs() {
 }
 
 async function writeOldLogs(oldLogs) {
-    const now = new Date();
-
     await new Promise((resolve, reject) => {
         fs.writeFile(
             dataFile,
-            JSON.stringify(Object.values(oldLogs)
-                .filter(log => now - log.timeParsed < 31 * 24 * 60 * 60 * 1000)
-                .reduce((acc, log) => Object.assign(acc, { [log.hash]: log }), {})),
+            JSON.stringify(
+                Object.values(oldLogs)
+                    .reduce((acc, log) => Object.assign(acc, { [log.hash]: log }), {})
+            ),
             (err) => {
                 if (err) reject(err);
                 else resolve();
@@ -132,6 +132,8 @@ function logLineHandler(line, oldLogs) {
         },
     };
 
+    if (timeParsed < tooOld) return {};
+
     Object.assign(oldLogs, data);
     return data;
 }
@@ -174,9 +176,12 @@ function readLogFiles(oldLogs) {
 async function main() {
     const oldLogs = await getOldLogs();
     const newLogs = await readLogFiles(oldLogs);
+    const relevantLogs = Object.values(oldLogs)
+        .filter(log => log.timeParsed > tooOld)
+        .reduce((acc, log) => Object.assign(acc, { [log.hash]: log }), {});
     const newErrors = Object.values(newLogs).filter(log => log.logParsed.level === 'ERROR');
     if (newErrors.length) process.stdout.write(JSON.stringify(newErrors, null, 4));
-    writeOldLogs(oldLogs);
+    writeOldLogs(relevantLogs);
 }
 
 main();

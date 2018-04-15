@@ -12,8 +12,8 @@ docker run \
     --rm \
     --user "$(id -u):$(id -g)" \
     --name $CONTAINER_NAME \
-    --volume ${DIR}/dvb-log-parser.js:/usr/local/bin/dvb-log-parser.js:ro \
-    --volume ${DIR}/data:/data \
+    --volume "${DIR}/dvb-log-parser.js:/usr/local/bin/dvb-log-parser.js:ro" \
+    --volume "${DIR}/data:/data" \
     --volume ${LOG_DIR}:/var/log:ro \
     --env 'LOG_FILE_NAME_STARTS_WITH=postdata.dvb.log' \
     $IMAGE_NAME \
