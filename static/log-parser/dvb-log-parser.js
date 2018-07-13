@@ -150,7 +150,17 @@ function logFileHandler(fileName, oldLogs) {
         });
 
         rl.on('error', reject);
-        rl.on('line', line => Object.assign(newData, logLineHandler(line, oldLogs)));
+        rl.on('line', (line) => {
+            try {
+                Object.assign(newData, logLineHandler(line, oldLogs));
+            } catch (err) {
+                process.stdout.write(
+                    `ERROR: while read file "${fileName}"\n` +
+                    `line: "${line}"\n` +
+                    `caused error: "${err}"\n`
+                );
+            }
+        });
         rl.on('close', () => resolve(newData));
     });
 }
